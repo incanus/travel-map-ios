@@ -5,6 +5,8 @@ class ViewController: UIViewController, MGLMapViewDelegate {
 
     @IBOutlet var map: MGLMapView?
 
+    var label: UILabel = UILabel(frame: CGRect(x: 0, y: 0, width: 0, height: 0))
+
     var addedLayers = [LayerInfo]()
 
     let countryBaseColor = UIColor(red: 241/255, green: 163/255, blue:  64/255, alpha: 1)
@@ -41,25 +43,48 @@ class ViewController: UIViewController, MGLMapViewDelegate {
         map?.styleURL = MGLStyle.darkStyleURL(withVersion: MGLStyleDefaultVersion)
         map?.visibleCoordinateBounds = worldBounds
 
-        map?.isScrollEnabled = false
-
-        map?.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(handlePan)))
+        map?.addGestureRecognizer(UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress)))
     }
 
-    func handlePan(pan: UIPanGestureRecognizer) {
+    func handleLongPress(longPress: UILongPressGestureRecognizer) {
         resetMap()
-        if (pan.state == .began || pan.state == .changed) {
+        if (longPress.state == .began || longPress.state == .changed) {
             var addedLayerNames = Set<String>()
             for addedLayer in addedLayers {
                 addedLayerNames.insert(addedLayer.name)
             }
-            let features = map?.visibleFeatures(at: pan.location(in: map), styleLayerIdentifiers: addedLayerNames)
+            let features = map?.visibleFeatures(at: longPress.location(in: map), styleLayerIdentifiers: addedLayerNames)
             if let feature = features?.first,
-               let name    = feature.attribute(forKey: "name") as? String,
+               let rawName = feature.attribute(forKey: "name") as? String,
+               let name    = rawName.applyingTransform(StringTransform.stripDiacritics, reverse: false),
                let layer   = map?.style().layer(withIdentifier: name) as? MGLFillStyleLayer {
+                if label.frame.size.width == 0 {
+                    label.frame = CGRect(x: 0, y: 0, width: 150, height: 30)
+                    label.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+                    label.layer.borderColor = UIColor.darkGray.cgColor
+                    label.layer.borderWidth = 1
+                    label.layer.cornerRadius = 5
+                    label.layer.masksToBounds = true
+                    label.textAlignment = .center
+                    label.font = UIFont.systemFont(ofSize: 18)
+                    label.alpha = 0
+                    view.addSubview(label)
+                }
+                label.text = rawName
+                label.center = longPress.location(in: map)
+                label.center.y = label.center.y - 75
+                if self.label.alpha == 0 {
+                    UIView.animate(withDuration: 0.25, animations: { [unowned self] in
+                        self.label.alpha = 1
+                    })
+                }
                 layer.fillColor = MGLStyleValue(rawValue: UIColor.red)
                 layer.fillOpacity = MGLStyleValue(rawValue: 1)
             }
+        } else {
+            UIView.animate(withDuration: 0.25, animations: { [unowned self] in
+                self.label.alpha = 0
+            })
         }
     }
 
