@@ -25,6 +25,7 @@ class ViewController: UIViewController, MGLMapViewDelegate {
 
         var name: String
         var type: LayerType
+        var lastVisitYear: Int
         var opacity: MGLStyleValue<NSNumber>
 
         var hashValue: Int {
@@ -57,20 +58,22 @@ class ViewController: UIViewController, MGLMapViewDelegate {
             if let feature = features?.first,
                let rawName = feature.attribute(forKey: "name") as? String,
                let name    = rawName.applyingTransform(StringTransform.stripDiacritics, reverse: false),
+               let year    = addedLayers.filter({ (layerInfo) -> Bool in return layerInfo.name == name }).first?.lastVisitYear,
                let layer   = map?.style().layer(withIdentifier: name) as? MGLFillStyleLayer {
                 if label.frame.size.width == 0 {
-                    label.frame = CGRect(x: 0, y: 0, width: 150, height: 30)
+                    label.frame = CGRect(x: 0, y: 0, width: 180, height: 60)
                     label.backgroundColor = UIColor.white.withAlphaComponent(0.9)
                     label.layer.borderColor = UIColor.darkGray.cgColor
                     label.layer.borderWidth = 1
                     label.layer.cornerRadius = 5
                     label.layer.masksToBounds = true
+                    label.numberOfLines = 2
                     label.textAlignment = .center
                     label.font = UIFont.systemFont(ofSize: 18)
                     label.alpha = 0
                     view.addSubview(label)
                 }
-                label.text = rawName
+                label.text = "\(rawName)\nLast visited in \(year)"
                 label.center = longPress.location(in: map)
                 label.center.y = label.center.y - 75
                 if self.label.alpha == 0 {
@@ -133,6 +136,7 @@ class ViewController: UIViewController, MGLMapViewDelegate {
                                 style.insert(layer, below: borders)
                                 self.addedLayers.append(LayerInfo(name: name,
                                                                   type: .Country,
+                                                                  lastVisitYear: year,
                                                                   opacity: layer.fillOpacity))
                             }
                         }
@@ -148,6 +152,7 @@ class ViewController: UIViewController, MGLMapViewDelegate {
                                 style.insert(layer, below: borders)
                                 self.addedLayers.append(LayerInfo(name: name,
                                                                   type: .State,
+                                                                  lastVisitYear: year,
                                                                   opacity: layer.fillOpacity))
                             }
                         }
